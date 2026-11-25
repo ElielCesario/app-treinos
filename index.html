@@ -162,6 +162,15 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 .ajwk>summary{font:700 18px var(--display);letter-spacing:.04em;text-transform:uppercase}
 .swrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;font-weight:600}
 .btns{display:flex;gap:8px;flex-wrap:wrap}
+.sobre-hero{text-align:center;padding:22px 16px;background:#0d1117;border-radius:12px;color:#f5f0e8}
+.sobre-hero img{border-radius:18px;border:1px solid rgba(201,168,76,.5)}
+.sobre-hero h2{font:italic 600 40px/1 Georgia,'Times New Roman',serif;color:#C9A84C;text-transform:none;letter-spacing:0;margin:12px 0 6px}
+.sobre-hero p{margin:0;color:#c9c3b8;font-size:15px}
+.sobre p,.sobre li{font-size:15.5px;line-height:1.5}
+.sobre ul{margin:8px 0 0;padding-left:20px}.sobre li+li{margin-top:6px}
+.sobre details.fmore p,.sobre details.fmore ul{margin-top:10px}
+.sobre .pron{font:600 13px var(--body);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+#info-btn{white-space:nowrap}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .chip{font:600 16px var(--body);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:8px 16px;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -179,6 +188,7 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 <div class="wrap">
   <header>
     <h1 class="brand"><img src="icons/icon-192.png" alt="" width="34" height="34"><span id="appname">Overa</span></h1>
+    <button id="info-btn" class="ghost" type="button">ⓘ Sobre</button>
   </header>
   <nav role="tablist" id="tabs">
     <button role="tab" data-tab="treinar" aria-selected="true">Treinar</button>
@@ -232,6 +242,7 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
   <section id="tab-nutri" hidden></section>
   <section id="tab-dados" hidden></section>
   <section id="tab-ajustes" hidden></section>
+  <section id="tab-sobre" hidden></section>
 </div>
 
 <script>
@@ -948,6 +959,31 @@ function renderAjustes(){
     box.append(gen,h('div',{class:'btns'},fromMine,clr));
   }
 }
+// ---------- sobre ----------
+const VERSAO='1.1 · nov/2026';
+function renderSobre(){
+  const box=$('tab-sobre');box.classList.add('sobre');
+  const item=(t,html)=>`<details class="fmore"><summary>${t}</summary>${html}</details>`;
+  box.innerHTML=`
+  <div class="sobre-hero"><img src="icons/icon-192.png" width="72" height="72" alt="">
+    <h2>Overa</h2><p>Treino com dados. Evolução de verdade.</p></div>
+  <div class="card"><h2>O que significa Overa</h2>
+    <div class="pron" style="margin-top:6px">o·vê·ra · de <i>overload</i></div>
+    <p>O nome vem de <b>overload</b>, a <b>sobrecarga progressiva</b>: o princípio mais importante do treino de força. O corpo só evolui quando recebe um pouco mais do que já está acostumado, seja mais carga, mais repetições ou mais séries.</p>
+    <p>É isso que o Overa faz por você. Ele lembra o que você fez na última vez e sugere o próximo passo, para você evoluir com constância, sem achismo e sem depender da memória.</p></div>
+  <div class="card"><h2>Como usar</h2><div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+    ${item('🏋️ Treinar',`<ul><li>O app mostra o <b>treino do dia</b> seguindo a ordem do seu plano.</li><li>Carga e repetições já vêm preenchidas com a <b>sugestão</b>: se você bateu o máximo de reps, ele sobe a carga; se não, pede uma rep a mais.</li><li>Ajuste se precisar e toque em <b>Registrar série</b>. O horário fica salvo e o descanso entre séries é calculado.</li><li>Toque em outro exercício da lista para mudar a ordem. Toque na data (✎) para registrar outro dia.</li></ul>`)}
+    ${item('📈 Evolução e Recordes',`<ul><li><b>Evolução</b> mostra frequência, volume, duração e a curva de cada exercício, com filtros por período.</li><li><b>Recordes</b> guarda a sua melhor série em cada exercício. Toda vez que você supera, aparece a etiqueta RECORDE.</li></ul>`)}
+    ${item('📏 Medidas',`<p>Registre suas avaliações físicas (peso, % de gordura, circunferências, dobras) e as orientações do nutricionista no campo de observações. Os gráficos mostram a evolução entre uma avaliação e outra.</p>`)}
+    ${item('⚙️ Ajustes e plano',`<ul><li>Coloque seu nome e, se quiser, ative o <b>acompanhamento do ciclo menstrual</b>.</li><li>Edite seu plano: treinos, exercícios, séries, faixa de repetições e dias de folga. Para alternar entre máquinas, use <b>|</b> (ex.: Leg press | Hack).</li><li>Recebeu um <b>link de plano</b> do seu treinador? Abra no celular e confirme. O plano novo entra e o seu histórico continua.</li></ul>`)}
+    ${item('💾 Backup e troca de celular',`<p>Seus dados ficam <b>só neste aparelho</b>. Em <b>Dados → Gerar backup</b>, salve o arquivo no Drive ou no WhatsApp de vez em quando. Ao trocar de celular, use <b>Restaurar backup</b>. Em Dados também dá para exportar uma planilha (CSV).</p>`)}
+    ${item('📲 Instalar como app',`<ul><li><b>iPhone:</b> abra no Safari, toque em Compartilhar e depois em <b>Adicionar à Tela de Início</b>.</li><li><b>Android:</b> no Chrome, toque em ⋮ e depois em <b>Instalar app</b>.</li><li>Depois de instalado, funciona até sem internet.</li></ul>`)}
+  </div></div>
+  <div class="card"><h2>Privacidade</h2><p>O Overa não tem cadastro e não envia seus treinos para nenhum servidor: tudo fica guardado no seu aparelho. Só você vê seus dados, e só sai daqui o que você mesmo exportar.</p></div>
+  <div class="card"><h2>Feito pela BiblioTech</h2><p>O Overa nasceu de um caderno de treino real, transformado em app por quem trabalha com dados no dia a dia. Quer um plano montado para você ou acompanhamento?</p>
+    <a class="ghost" style="display:inline-block;text-decoration:none;margin-top:8px" href="https://elielcesario.github.io/biblioteca-digital/" target="_blank" rel="noopener">Conhecer a BiblioTech →</a>
+    <p class="sub" style="margin-top:14px">Versão ${VERSAO}. O app ajuda a registrar e acompanhar seus treinos e não substitui a orientação de um profissional de educação física ou de saúde.</p></div>`;
+}
 // ---------- geral ----------
 function renderLists(){
   const ex=$('exs');ex.replaceChildren(...exerciseNames(state.person).map(n=>h('option',{value:n})));
@@ -955,12 +991,13 @@ function renderLists(){
 }
 function renderMeta(){const t=$('tipo').value.trim();$('metasum').textContent=(state.date===fmtDate(new Date())?'Hoje':wd(state.date))+' · '+br(state.date).slice(0,5)+(t?' · '+t:'')+'';$('metasum').append(h('span',{class:'pen'},'✎'))}
 function renderAll(){renderMens();if(!state.calSync||state.calSync!==state.date){state.calSync=state.date;calMonth=state.date.slice(0,7)}renderCal();renderCardioSum();renderMeta();renderLists();renderPlan();renderHint();renderToday();if(state.tab==='historico')renderHist();if(state.tab==='recordes')renderRec();if(state.tab==='dados')renderDados();if(state.tab==='evolucao')renderEvo();if(state.tab==='nutri')renderNutri()}
-function setTab(t){state.tab=t;store('tr-tab',t);document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));  for(const n of ['treinar','historico','recordes','dados','evolucao','nutri','ajustes'])$('tab-'+n).hidden=n!==t;renderAll();if(t==='ajustes')renderAjustes()}
+function setTab(t){state.tab=t;store('tr-tab',t);document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));  for(const n of ['treinar','historico','recordes','dados','evolucao','nutri','ajustes','sobre'])$('tab-'+n).hidden=n!==t;renderAll();if(t==='ajustes')renderAjustes();if(t==='sobre'){renderSobre();scrollTo(0,0)}}
 function setPerson(p){state.person=p;store('tr-person',p);histLimit=20;datEx='';recQ='';
   state.fillKey=null;state.focus=null;syncTipo();$('ex').value='';$('load').value='';$('reps').value='';renderAll()}
 
 $('appname').textContent=CONFIG.appName;document.title=CONFIG.appName;
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+$('info-btn').onclick=()=>setTab(state.tab==='sobre'?'treinar':'sobre');
 $('date').value=state.date;$('date').onchange=()=>{state.date=$('date').value||fmtDate(new Date());syncTipo();renderAll()};
 $('tipo').onchange=saveTipo;$('tipo').addEventListener('input',renderMeta);
 $('ex').addEventListener('input',renderHint);
@@ -970,7 +1007,7 @@ let lastToday=state.date;
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')return;const t=fmtDate(new Date());if(t!==lastToday&&state.date===lastToday){state.date=t;lastToday=t;$('date').value=t;syncTipo();renderAll()}});
 $('reps').addEventListener('keydown',e=>{if(e.key==='Enter')addSet()});
 
-setPerson(state.person);setTab(['treinar','historico','recordes','dados','evolucao','nutri','ajustes'].includes(state.tab)?state.tab:'treinar');
+setPerson(state.person);setTab(['treinar','historico','recordes','dados','evolucao','nutri','ajustes','sobre'].includes(state.tab)?state.tab:'treinar');
 
 // ---------- armazenamento no aparelho ----------
 function localDB(){

@@ -1,14 +1,14 @@
 {
-  "name": "Treinos",
-  "short_name": "Treinos",
+  "name": "Tech-Fit",
+  "short_name": "Tech-Fit",
   "description": "Caderno de treino: série a série, sugestão de carga, recordes e evolução.",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#eef0f2",
-  "theme_color": "#2447d6",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
   "icons": [
     {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
     {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png"},

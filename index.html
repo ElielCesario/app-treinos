@@ -2,14 +2,14 @@
 <html lang="pt-BR"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Treinos</title>
+<title>Tech-Fit</title>
 <meta name="description" content="Seu caderno de treino no celular: série a série, sugestão de carga, recordes e evolução.">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#2447d6">
+<meta name="theme-color" content="#0d1117">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Treinos">
+<meta name="apple-mobile-web-app-title" content="Tech-Fit">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
@@ -35,6 +35,7 @@ body{background:var(--bg);color:var(--ink);font:400 16px/1.4 var(--body);padding
 .wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 h1{font:700 30px/1 var(--display);letter-spacing:.02em;text-transform:uppercase;margin:0}
+.brand{display:flex;align-items:center;gap:10px}.brand img{border-radius:9px}
 .seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
 .seg button{font:600 16px var(--display);letter-spacing:.04em;text-transform:uppercase;border:0;background:none;color:var(--muted);padding:7px 18px;border-radius:7px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
@@ -152,6 +153,15 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 .evo table{font-size:14px}
 .evo td:first-child{white-space:normal}
 .install{display:flex;gap:12px;align-items:flex-start}.install p{margin:0;font-size:15px;flex:1}.install b{font-weight:600}
+.ajrow{border-top:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:6px}
+.ajrow:first-of-type{border-top:0}
+.ajnums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto auto;gap:6px;align-items:end}
+.ajnums label{flex:none;font-size:11px}.ajnums input{padding:8px;text-align:center}
+.iconbtn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;height:42px;min-width:40px;cursor:pointer;font:600 15px var(--body)}
+.iconbtn.armed{color:var(--danger);border-color:var(--danger)}
+.ajwk>summary{font:700 18px var(--display);letter-spacing:.04em;text-transform:uppercase}
+.swrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;font-weight:600}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .chip{font:600 16px var(--body);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:8px 16px;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -168,7 +178,7 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 
 <div class="wrap">
   <header>
-    <h1 id="appname">Treinos</h1>
+    <h1 class="brand"><img src="icons/icon-192.png" alt="" width="34" height="34"><span id="appname">Tech-Fit</span></h1>
   </header>
   <nav role="tablist" id="tabs">
     <button role="tab" data-tab="treinar" aria-selected="true">Treinar</button>
@@ -177,6 +187,7 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
     <button role="tab" data-tab="recordes" aria-selected="false">Recordes</button>
     <button role="tab" data-tab="historico" aria-selected="false">Histórico</button>
     <button role="tab" data-tab="dados" aria-selected="false">Dados</button>
+    <button role="tab" data-tab="ajustes" aria-selected="false">Ajustes</button>
   </nav>
   <div class="card install" id="install" hidden></div>
   <div class="status" id="status"></div>
@@ -220,6 +231,7 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
   <section id="tab-evolucao" class="evo" hidden></section>
   <section id="tab-nutri" hidden></section>
   <section id="tab-dados" hidden></section>
+  <section id="tab-ajustes" hidden></section>
 </div>
 
 <script>
@@ -233,7 +245,7 @@ const TZ='America/Sao_Paulo';
    restAfter: dias de folga sugeridos depois daquele treino.
    ===================================================================== */
 const CONFIG={
-  appName:'Treinos',
+  appName:'Tech-Fit',
   nome:'Aluno',
   ciclo:false,          // true = mostra o registro de menstruação e as comparações
   plano:[
@@ -243,6 +255,7 @@ const CONFIG={
   ]
 };
 /* ===================================================================== */
+const CONFIG_DEF=JSON.parse(JSON.stringify(CONFIG));
 const PEOPLE={eu:CONFIG.nome};
 const $=id=>document.getElementById(id);
 const fmtDate=d=>new Date(d.getTime()-10800000).toISOString().slice(0,10); // Brasília = UTC-3 fixo
@@ -825,11 +838,11 @@ function importBackup(){
   inp.onchange=async()=>{const f=inp.files&&inp.files[0];if(!f)return;
     try{const j=JSON.parse(await f.text());if(!j||j.app!=='treinos'||!j.data)throw 0;
       if(!confirm('Substituir os treinos deste aparelho pelos do backup?'))return;
-      state.db.load(j.data);toast('Backup restaurado')}catch(e){toast('Arquivo de backup inválido')}};
+      state.db.load(j.data);applyCfg(savedCfg());aj=null;state.fillKey=null;renderAll();if(state.tab==='ajustes')renderAjustes();toast('Backup restaurado')}catch(e){toast('Arquivo de backup inválido')}};
   inp.click()}
 function backupCard(){
   return h('div',{class:'card'},h('h2',null,'Backup'),
-    h('div',{class:'sub',style:'margin:4px 0 12px'},'Seus treinos ficam salvos neste aparelho. Gere um backup de vez em quando e guarde no Drive ou no WhatsApp. Ao trocar de celular, é só restaurar.'),
+    h('div',{class:'sub',style:'margin:4px 0 12px'},'Seus treinos, medidas e plano ficam salvos neste aparelho. Gere um backup de vez em quando e guarde no Drive ou no WhatsApp. Ao trocar de celular, é só restaurar.'),
     h('div',{class:'row'},h('button',{class:'ghost',onclick:exportBackup},'Gerar backup'),h('button',{class:'ghost',onclick:importBackup},'Restaurar backup')))}
 function renderDados(){
   const box=$('tab-dados');box.replaceChildren(backupCard());
@@ -846,6 +859,95 @@ function renderDados(){
   fill();
 }
 
+// ---------- ajustes: perfil e plano ----------
+function applyCfg(c){c=c||{};CONFIG.nome=c.nome||CONFIG_DEF.nome;CONFIG.ciclo=!!c.ciclo;
+  PLANS.eu=(Array.isArray(c.plano)&&c.plano.length)?c.plano:CONFIG_DEF.plano;PEOPLE.eu=CONFIG.nome}
+function savedCfg(){const d=state.db&&state.db.dump();return (d&&d.config&&d.config.app)||{}}
+function saveCfg(c){const d={...savedCfg(),...c,atualizado:new Date().toISOString()};applyCfg(d);state.fillKey=null;return state.db.doc('config/app').set(d)}
+const clone=o=>JSON.parse(JSON.stringify(o));
+const exName=e=>Array.isArray(e[0])?e[0].join(' | '):(e[0]||'');
+function cleanPlan(pl){return pl.map(w=>({...w,name:(w.name||'').trim(),exs:w.exs.filter(e=>exName(e).trim())})).filter(w=>w.name&&w.exs.length)}
+let ajMode='meu',aj=null,ajC=null;
+function draftLoad(){try{return JSON.parse(store('tr-rascunho'))}catch(e){return null}}
+function draftSave(){store('tr-rascunho',JSON.stringify(ajC))}
+function planEditor(plano,onChange){
+  const wrap=h('div',{style:'display:flex;flex-direction:column;gap:12px'});
+  plano.forEach((w,wi)=>{
+    const d=h('details',{class:'card ajwk'},h('summary',null,(w.name||'Treino sem nome')+' · '+w.exs.length+' exerc.'));
+    d.open=!!w._open;d.addEventListener('toggle',()=>{w._open=d.open});
+    const nm=h('input',{value:w.name||'',placeholder:'Ex.: Treino A'});nm.oninput=()=>{w.name=nm.value;d.firstChild.textContent=(w.name||'Treino sem nome')+' · '+w.exs.length+' exerc.';onChange()};
+    const fol=h('select',null,[0,1,2,3].map(n=>h('option',{value:n},n?n+(n>1?' dias':' dia'):'Sem folga')));fol.value=String(w.restAfter||0);fol.onchange=()=>{w.restAfter=+fol.value||undefined;onChange()};
+    d.append(h('div',{class:'row',style:'margin-top:12px'},h('label',{style:'flex:2 1 160px'},'Nome do treino',nm),h('label',{style:'flex:1 1 110px'},'Folga depois',fol)));
+    w.exs.forEach((e,ei)=>{
+      const n=h('input',{value:exName(e),placeholder:'Exercício (alternativas: A | B)'});
+      n.oninput=()=>{const a=n.value.split('|').map(s=>s.trim()).filter(Boolean);e[0]=a.length>1?a:(a[0]||n.value);onChange()};
+      const num=(i,lab,val)=>{const x=h('input',{inputmode:'numeric',value:val==null?'':String(val)});x.oninput=()=>{const v=parseInt(x.value,10);e[i]=v>0?v:0;if(i===1&&e.length>5)e.length=5;onChange()};return h('label',null,lab,x)};
+      const up=h('button',{class:'iconbtn','aria-label':'Subir exercício'},'↑');up.onclick=()=>{if(ei>0){w.exs.splice(ei-1,0,w.exs.splice(ei,1)[0]);onChange(true)}};
+      const del=h('button',{class:'iconbtn','aria-label':'Remover exercício'},'✕');
+      del.onclick=()=>{if(!del.classList.contains('armed')){del.classList.add('armed');setTimeout(()=>del.classList.remove('armed'),2500);return}w.exs.splice(ei,1);onChange(true)};
+      d.append(h('div',{class:'ajrow'},n,h('div',{class:'ajnums'},num(1,'Séries',planSets(e,fmtDate(new Date()))),num(2,'Reps mín',e[2]),num(3,'Reps máx',e[3]),up,del)));
+    });
+    const add=h('button',{class:'ghost'},'+ Exercício');add.onclick=()=>{w.exs.push(['',3,8,12]);onChange(true)};
+    const rm=h('button',{class:'ghost'},'Remover treino');
+    rm.onclick=()=>{if(rm.dataset.a!=='1'){rm.dataset.a='1';rm.textContent='Confirmar remoção?';return}plano.splice(wi,1);onChange(true)};
+    d.append(h('div',{class:'btns',style:'margin-top:10px'},add,rm));
+    wrap.append(d);
+  });
+  const nw=h('button',{class:'ghost'},'+ Novo treino');nw.onclick=()=>{plano.push({name:'Treino '+String.fromCharCode(65+plano.length),exs:[['',3,8,12]],_open:true});onChange(true)};
+  wrap.append(nw);
+  return wrap;
+}
+function planLink(plano){
+  const j=JSON.stringify({v:1,plano:cleanPlan(clone(plano)).map(w=>{delete w._open;return w})});
+  const b=btoa(unescape(encodeURIComponent(j))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  return location.origin+location.pathname+'#plano='+b;
+}
+async function sharePlan(plano){
+  const pl=cleanPlan(clone(plano));if(!pl.length){toast('Monte pelo menos um treino com exercícios');return}
+  const url=planLink(plano),txt='Seu plano de treino no '+CONFIG.appName+'. Abra o link no celular e toque em OK para carregar:';
+  try{if(navigator.share){await navigator.share({title:'Plano de treino',text:txt,url});return}}catch(e){if(e&&e.name==='AbortError')return}
+  try{await navigator.clipboard.writeText(txt+' '+url);toast('Link copiado. Cole no WhatsApp do cliente')}catch(e){prompt('Copie o link:',url)}
+}
+function checkPlanLink(){
+  const m=/^#plano=([\w-]+)/.exec(location.hash);if(!m)return;
+  history.replaceState(null,'',location.pathname+location.search);
+  try{let b=m[1].replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';
+    const j=JSON.parse(decodeURIComponent(escape(atob(b))));const pl=cleanPlan(j.plano||[]);if(!pl.length)throw 0;
+    setTimeout(()=>{if(confirm('Você recebeu um plano com '+pl.length+' treino'+(pl.length>1?'s':'')+' ('+pl.map(w=>w.name).join(', ')+').\n\nUsar este plano? Seu histórico continua igual.')){
+      enqueue(()=>saveCfg({plano:pl}));aj=null;renderAll();if(state.tab==='ajustes')renderAjustes();toast('Plano novo carregado')}},300);
+  }catch(e){toast('Este link de plano não é válido')}
+}
+function renderAjustes(){
+  const box=$('tab-ajustes');box.replaceChildren();
+  const seg=h('div',{class:'subnav'},[['meu','Meu plano'],['cliente','Montar para outra pessoa']].map(([k,l])=>{const b=h('button',{'aria-selected':String(ajMode===k)},l);b.onclick=()=>{ajMode=k;renderAjustes()};return b}));
+  box.append(seg);
+  if(ajMode==='meu'){
+    if(!aj)aj={nome:CONFIG.nome,ciclo:CONFIG.ciclo,plano:clone(PLANS.eu)};
+    const status=h('div',{class:'sub',style:'min-height:18px'});
+    const dirty=(re)=>{status.textContent='Alterações não salvas';if(re)renderAjustes()};
+    const nome=h('input',{value:aj.nome});nome.oninput=()=>{aj.nome=nome.value;dirty()};
+    const sw=h('button',{class:'sw',role:'switch','aria-checked':String(aj.ciclo),'aria-label':'Acompanhar ciclo menstrual'});
+    sw.onclick=()=>{aj.ciclo=!aj.ciclo;sw.setAttribute('aria-checked',String(aj.ciclo));dirty()};
+    box.append(h('div',{class:'card'},h('h2',null,'Perfil'),h('label',{style:'margin-top:12px'},'Seu nome',nome),
+      h('div',{class:'swrow'},h('span',null,'Acompanhar ciclo menstrual'),sw),
+      h('div',{class:'sub',style:'margin-top:4px'},'Mostra a marcação de menstruação no calendário e compara o rendimento nesses dias.')));
+    box.append(h('h2',{style:'margin-top:6px'},'Plano de treino'),h('div',{class:'sub'},'Séries e faixa de repetições de cada exercício. Para alternar entre máquinas, separe com | (ex.: Leg press | Hack).'));
+    box.append(planEditor(aj.plano,dirty));
+    const save=h('button',{class:'primary'},'Salvar ajustes');
+    save.onclick=()=>{const pl=cleanPlan(aj.plano);if(!pl.length){toast('Monte pelo menos um treino com exercícios');return}
+      pl.forEach(w=>delete w._open);const novo={nome:aj.nome.trim()||CONFIG_DEF.nome,ciclo:aj.ciclo,plano:pl};enqueue(()=>saveCfg(novo));aj=null;renderAll();renderAjustes();toast('Ajustes salvos')};
+    const undo=h('button',{class:'ghost'},'Desfazer alterações');undo.onclick=()=>{aj=null;renderAjustes()};
+    box.append(status,save,h('div',{class:'btns'},undo,h('button',{class:'ghost',onclick:()=>sharePlan(aj.plano)},'Enviar meu plano por link')));
+  }else{
+    if(!ajC)ajC=draftLoad()||{plano:[{name:'Treino A',exs:[['',3,8,12]],_open:true}]};
+    box.append(h('div',{class:'card'},h('h2',null,'Plano para cliente'),h('div',{class:'sub',style:'margin-top:6px'},'Monte aqui o plano de outra pessoa, sem mexer no seu. Ao terminar, gere o link e mande pelo WhatsApp: ela abre no celular, confirma e o plano carrega no app dela, mantendo todo o histórico.')));
+    box.append(planEditor(ajC.plano,(re)=>{draftSave();if(re)renderAjustes()}));
+    const gen=h('button',{class:'primary'},'Gerar link para o cliente');gen.onclick=()=>sharePlan(ajC.plano);
+    const fromMine=h('button',{class:'ghost'},'Começar a partir do meu plano');fromMine.onclick=()=>{ajC={plano:clone(PLANS.eu)};draftSave();renderAjustes()};
+    const clr=h('button',{class:'ghost'},'Limpar rascunho');clr.onclick=()=>{if(clr.dataset.a!=='1'){clr.dataset.a='1';clr.textContent='Confirmar?';return}ajC=null;store('tr-rascunho','');renderAjustes()};
+    box.append(gen,h('div',{class:'btns'},fromMine,clr));
+  }
+}
 // ---------- geral ----------
 function renderLists(){
   const ex=$('exs');ex.replaceChildren(...exerciseNames(state.person).map(n=>h('option',{value:n})));
@@ -853,7 +955,7 @@ function renderLists(){
 }
 function renderMeta(){const t=$('tipo').value.trim();$('metasum').textContent=(state.date===fmtDate(new Date())?'Hoje':wd(state.date))+' · '+br(state.date).slice(0,5)+(t?' · '+t:'')+'';$('metasum').append(h('span',{class:'pen'},'✎'))}
 function renderAll(){renderMens();if(!state.calSync||state.calSync!==state.date){state.calSync=state.date;calMonth=state.date.slice(0,7)}renderCal();renderCardioSum();renderMeta();renderLists();renderPlan();renderHint();renderToday();if(state.tab==='historico')renderHist();if(state.tab==='recordes')renderRec();if(state.tab==='dados')renderDados();if(state.tab==='evolucao')renderEvo();if(state.tab==='nutri')renderNutri()}
-function setTab(t){state.tab=t;store('tr-tab',t);document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));  for(const n of ['treinar','historico','recordes','dados','evolucao','nutri'])$('tab-'+n).hidden=n!==t;renderAll()}
+function setTab(t){state.tab=t;store('tr-tab',t);document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));  for(const n of ['treinar','historico','recordes','dados','evolucao','nutri','ajustes'])$('tab-'+n).hidden=n!==t;renderAll();if(t==='ajustes')renderAjustes()}
 function setPerson(p){state.person=p;store('tr-person',p);histLimit=20;datEx='';recQ='';
   state.fillKey=null;state.focus=null;syncTipo();$('ex').value='';$('load').value='';$('reps').value='';renderAll()}
 
@@ -868,7 +970,7 @@ let lastToday=state.date;
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')return;const t=fmtDate(new Date());if(t!==lastToday&&state.date===lastToday){state.date=t;lastToday=t;$('date').value=t;syncTipo();renderAll()}});
 $('reps').addEventListener('keydown',e=>{if(e.key==='Enter')addSet()});
 
-setPerson(state.person);setTab(['treinar','historico','recordes','dados','evolucao','nutri'].includes(state.tab)?state.tab:'treinar');
+setPerson(state.person);setTab(['treinar','historico','recordes','dados','evolucao','nutri','ajustes'].includes(state.tab)?state.tab:'treinar');
 
 // ---------- armazenamento no aparelho ----------
 function localDB(){
@@ -911,6 +1013,7 @@ if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWor
     $('status').textContent=state.loaded?'':'Carregando…';
     syncTipoIfIdle();renderAll();
   },err=>{clearTimeout(slow);$('status').textContent='Erro ao ler o banco ('+((err&&err.code)||'desconhecido')+').'});
+  applyCfg(savedCfg());aj=null;$('appname').textContent=CONFIG.appName;renderAll();if(state.tab==='ajustes')renderAjustes();checkPlanLink();
   state.db.collection('ciclo').onSnapshot(snap=>{const m={};snap.docs.forEach(d=>{m[d.id]=d.data()});state.ciclo=m;renderAll()},()=>{});
   state.db.collection('avaliacoes').onSnapshot(snap=>{const m={};snap.docs.forEach(d=>{m[d.id]=d.data()});state.avs=m;if(state.tab==='nutri')renderNutri()},()=>{});
   function syncTipoIfIdle(){if(document.activeElement!==$('tipo'))syncTipo()}

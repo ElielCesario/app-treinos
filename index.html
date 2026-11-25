@@ -14,6 +14,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 </head><body>
+<div id="lock" class="lock" hidden></div>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>
 /* Layout: coluna única estilo caderno de academia; o número (carga x reps) é a estrela, em fonte condensada de placa de anilha. */
@@ -173,6 +174,19 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 .sobre details.fmore p,.sobre details.fmore ul{margin-top:10px}
 .sobre .pron{font:600 13px var(--body);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
 #info-btn{white-space:nowrap}
+.lock{position:fixed;inset:0;z-index:50;background:#0d1117;color:#f5f0e8;overflow:auto;display:flex;align-items:center;justify-content:center;padding:24px 16px calc(24px + env(safe-area-inset-bottom,0px))}
+.lock[hidden]{display:none}
+.lock-in{width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;text-align:center}
+.lock-in img{margin:0 auto;border-radius:18px;border:1px solid rgba(201,168,76,.5)}
+.lock-in h2{font:italic 600 38px/1 Georgia,serif;color:#C9A84C;text-transform:none;letter-spacing:0;margin:4px 0 0}
+.lock-in p{margin:0;color:#c9c3b8;font-size:15px;line-height:1.45}
+.lock-in label{color:#9aa1a9;text-align:left;flex:none}
+.lock-in input{background:#161b22;border-color:#30363d;color:#f5f0e8}
+.lock-in textarea{font:500 14px var(--body);background:#161b22;border:1px solid #30363d;color:#f5f0e8;border-radius:8px;padding:10px;width:100%;min-height:84px;resize:vertical}
+.lock-in .primary{background:#C9A84C;color:#1a1405}
+.lock-in .ghost{color:#f5f0e8;border-color:#30363d}
+.lock-in .err{color:#ff8a80;font-size:14px;min-height:18px}
+.lic{font-size:13px;color:var(--muted);margin-top:10px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .chip{font:600 16px var(--body);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:8px 16px;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -982,7 +996,8 @@ function renderAjustes(){
     sw.onclick=()=>{aj.ciclo=!aj.ciclo;sw.setAttribute('aria-checked',String(aj.ciclo));dirty()};
     box.append(h('div',{class:'card'},h('h2',null,'Perfil'),h('label',{style:'margin-top:12px'},'Seu nome',nome),
       h('div',{class:'swrow'},h('span',null,'Acompanhar ciclo menstrual'),sw),
-      h('div',{class:'sub',style:'margin-top:4px'},'Mostra a marcação de menstruação no calendário e compara o rendimento nesses dias.')));
+      h('div',{class:'sub',style:'margin-top:4px'},'Mostra a marcação de menstruação no calendário e compara o rendimento nesses dias.'),
+      state.lic?h('div',{class:'lic'},'Acesso '+licTexto(state.lic)+' · '+state.lic.e+' · ',h('a',{href:'#',onclick:e=>{e.preventDefault();sairLic()}},'sair')):null));
     box.append(h('h2',{style:'margin-top:6px'},'Plano de treino'),h('div',{class:'sub'},'Séries e faixa de repetições de cada exercício. Para alternar entre máquinas, separe com | (ex.: Leg press | Hack).'));
     box.append(planEditor(aj.plano,dirty));
     const save=h('button',{class:'primary'},'Salvar ajustes');
@@ -1023,6 +1038,7 @@ function renderSobre(){
   <div class="card"><h2>Privacidade</h2><p>O Overa não tem cadastro e não envia seus treinos para nenhum servidor: tudo fica guardado no seu aparelho. Só você vê seus dados, e só sai daqui o que você mesmo exportar.</p></div>
   <div class="card"><h2>Feito pela BiblioTech</h2><p>O Overa nasceu de um caderno de treino real, transformado em app por quem trabalha com dados no dia a dia. Ele faz parte da BiblioTech, que reúne ebooks, cursos e mentoria em dados, tecnologia e IA.</p>
     <a class="ghost" style="display:inline-block;text-decoration:none;margin-top:8px" href="https://elielcesario.github.io/biblioteca-digital/" target="_blank" rel="noopener">Conhecer a BiblioTech →</a>
+    ${state.lic?`<p class="sub" style="margin-top:14px">Licenciado para <b>${(state.lic.n||'').replace(/</g,'&lt;')}</b> · ${state.lic.e.replace(/</g,'&lt;')} · acesso ${licTexto(state.lic)}</p>`:''}
     <p class="sub" style="margin-top:14px">Versão ${VERSAO}. O app ajuda a registrar e acompanhar seus treinos e não substitui a orientação de um profissional de educação física ou de saúde.</p></div>`;
 }
 // ---------- geral ----------
@@ -1079,6 +1095,56 @@ function renderInstall(){
   box.hidden=false;
 }
 renderInstall();
+// ---------- licença ----------
+const LIC_PUB={"kty": "RSA", "n": "91jhJAmP6uat-hIOtgPQOyDegAmL8TMbXP2UFlGBU12uk8E9yvAzIFSNEY7ryw9m97qkT20JOjrcAX_xg1fc2vFJ2gKSREKuBC35NlqEHCXHcB4lkOSNPReR_EKPCUqo_j8glAtCbaoFu6V535KAZKUX-rWFVHzzCLqvSyvoDaMqmoNsSrkSPJbudEkoqYsVopVAdJkuz5fUSpRmIZQpZSI_qb7hiMxMjlgWED-V2lHoTxUxSEAwFos8mCiSI_xbtiJwlsuxH8BvWGU_RElVJtPPC3-m5DXv20mloEuWC6bPubTzvd4dFaYUZffS0OK9Nee8k_I5MKV3rUr8Nkvl_Q", "e": "AQAB"};
+const WHATS='5511940216111';
+const b64u=t=>{t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';return Uint8Array.from(atob(t),c=>c.charCodeAt(0))};
+let licKey=null;
+async function verLic(code){
+  try{code=(code||'').trim().replace(/\s+/g,'');const [a,b]=code.split('.');if(!a||!b)return null;
+    licKey=licKey||await crypto.subtle.importKey('jwk',LIC_PUB,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify']);
+    const ok=await crypto.subtle.verify({name:'RSASSA-PKCS1-v1_5'},licKey,b64u(b),new TextEncoder().encode(a));
+    if(!ok)return null;const pl=JSON.parse(new TextDecoder().decode(b64u(a)));pl.code=code;return pl}catch(e){return null}
+}
+function hojeLic(){ // usa a maior data já vista, para não burlar voltando o relógio
+  const t=fmtDate(new Date()),seen=store('ov-seen')||'';const d=seen>t?seen:t;store('ov-seen',d);return d}
+const fmtBR=d=>d?d.split('-').reverse().join('/'):'';
+function licTexto(l){return l?(l.x?'válido até '+fmtBR(l.x):'vitalício'):''}
+async function gate(){
+  const box=$('lock');const l=await verLic(store('ov-lic'));
+  if(l&&(!l.x||hojeLic()<=l.x)){state.lic=l;box.hidden=true;document.body.style.overflow='';return true}
+  state.lic=null;lockScreen(l&&l.x?l:null);return false
+}
+function lockScreen(venc){
+  const box=$('lock');box.hidden=false;document.body.style.overflow='hidden';
+  const err=h('div',{class:'err'});
+  const email=h('input',{type:'email',autocomplete:'email',inputmode:'email',placeholder:'seu@email.com',value:venc?venc.e:''});
+  const cod=h('textarea',{placeholder:'Cole aqui o código que você recebeu',autocapitalize:'off',autocomplete:'off',spellcheck:'false'});
+  const go=h('button',{class:'primary'},'Entrar');
+  go.onclick=async()=>{err.textContent='';go.disabled=true;const l=await verLic(cod.value);go.disabled=false;
+    if(!l){err.textContent='Código inválido. Confira se copiou o código inteiro.';return}
+    if((l.e||'').toLowerCase()!==email.value.trim().toLowerCase()){err.textContent='Este código não pertence a este e-mail.';return}
+    if(l.x&&hojeLic()>l.x){err.textContent='Este código venceu em '+fmtBR(l.x)+'.';return}
+    store('ov-lic',l.code);await gate();renderAll();toast('Bem-vindo(a), '+(l.n||'').split(' ')[0]+'!')};
+  const zap=h('a',{class:'ghost',style:'text-decoration:none;display:block',target:'_blank',rel:'noopener',
+    href:'https://wa.me/'+WHATS+'?text='+encodeURIComponent(venc?'Olá! Quero renovar meu acesso ao Overa ('+venc.e+').':'Olá! Quero adquirir o acesso ao Overa.')},venc?'Renovar meu acesso':'Quero adquirir o Overa');
+  const kids=[h('img',{src:'icons/icon-192.png',width:72,height:72,alt:''}),h('h2',null,'Overa'),
+    h('p',null,venc?'Seu acesso venceu em '+fmtBR(venc.x)+'. Seus treinos continuam salvos neste aparelho: renove e cole o novo código para continuar.':'Treino com dados. Evolução de verdade. Entre com o e-mail da compra e o seu código de acesso.'),
+    h('label',null,'E-mail',email),h('label',null,'Código de acesso',cod),err,go,zap];
+  if(venc){const bk=h('button',{class:'ghost'},'Baixar backup dos meus treinos');bk.onclick=()=>state.db&&exportBackup();kids.push(bk)}
+  box.replaceChildren(h('div',{class:'lock-in'},kids));
+}
+async function checkLicHash(){
+  const m=/^#licenca=([\w.-]+)/.exec(location.hash);if(!m)return;
+  history.replaceState(null,'',location.pathname+location.search);
+  const l=await verLic(m[1]);
+  if(l&&(!l.x||hojeLic()<=l.x)){store('ov-lic',l.code);await gate();renderAll();toast('Acesso ativado para '+l.e)}
+  else toast(l?'Este código já venceu':'Link de acesso inválido');
+}
+function sairLic(){if(!confirm('Sair deste acesso? Seus treinos continuam salvos neste aparelho.'))return;store('ov-lic','');gate()}
+(async()=>{await gate();await checkLicHash()})();
+addEventListener('hashchange',checkLicHash);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')gate()});
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 
 (async()=>{

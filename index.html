@@ -241,13 +241,14 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
       <button class="primary" id="add">Registrar série</button>
     </div>
     <details class="card cardio" id="cardio">
-      <summary><h2>Cardio</h2><span class="sub" id="cardiosum"></span></summary>
+      <summary><h2>Cardio e modalidades</h2><span class="sub" id="cardiosum"></span></summary>
       <div class="chips" id="ctypes"></div>
       <div class="row" style="margin-top:12px">
         <label for="cmin" style="flex:1 1 100%">Tempo (min)<input id="cmin" class="big" inputmode="decimal" placeholder="0"></label>
       </div>
       <div style="height:12px"></div>
-      <button class="primary" id="cadd">Registrar cardio</button>
+      <div class="row" id="cnova" hidden style="margin-top:12px"><label for="cnome" style="flex:1 1 100%">Qual atividade?<input id="cnome" placeholder="Ex.: Boxe, Crossfit, Beach tennis" autocomplete="off"></label></div>
+      <button class="primary" id="cadd">Registrar atividade</button>
     </details>
     <div class="card" id="today"></div>
   </section>
@@ -409,9 +410,9 @@ function renderToday(){
     box.append(ex);
   }
   if(s.cardio&&s.cardio.length){
-    const cb=h('div',{class:'ex'},h('h3',{style:'margin:0 0 2px'},'Cardio'));
+    const cb=h('div',{class:'ex'},h('h3',{style:'margin:0 0 2px'},'Cardio e modalidades'));
     s.cardio.forEach((c,i)=>{
-      const del=h('button',{class:'x','aria-label':'Apagar cardio'},'apagar');
+      const del=h('button',{class:'x','aria-label':'Apagar atividade'},'apagar');
       del.addEventListener('click',()=>{if(!del.classList.contains('armed')){del.classList.add('armed');del.textContent='confirmar?';setTimeout(()=>{del.classList.remove('armed');del.textContent='apagar'},3000);return}removeCardio(s,i)});
       cb.append(h('div',{class:'set'},h('span',{class:'t'},c.t||'—'),h('span',{class:'num'},c.tipo+' · '+nf(c.min)+' min'),del));
     });
@@ -439,20 +440,28 @@ function saveTipo(){const id=state.person+'_'+state.date,s=state.sessions[id];if
   const d={...s,tipo:$('tipo').value.trim()};state.sessions[id]=d;enqueue(()=>state.db.doc('sessions/'+id).set(d))}
 
 // ---------- cardio ----------
-const CARDIO=['Esteira','Escada','Bicicleta','Outro'];
+const MOD_PADRAO=['Esteira','Bicicleta','Escada','Caminhada','Corrida','Natação','Jiu-jitsu','Muay thai','Boxe','Yoga','Pilates','Funcional','Dança','Futebol'];
+function modalidades(){const c=state.db?savedCfg():{};return Array.isArray(c.modalidades)&&c.modalidades.length?c.modalidades:MOD_PADRAO}
 let cType=store('tr-ctype')||'Esteira';
 function cardioMin(s){return s&&s.cardio?s.cardio.reduce((a,x)=>a+x.min,0):0}
-function renderCardioForm(){const box=$('ctypes');box.replaceChildren(...CARDIO.map(c=>{const b=h('button',{type:'button',class:'chip','aria-pressed':String(c===cType)},c);b.addEventListener('click',()=>{cType=c;store('tr-ctype',c);renderCardioForm()});return b}))}
+function renderCardioForm(){
+  const list=modalidades();if(cType!=='+'&&!list.includes(cType))cType=list[0];
+  const chip=(c,lab)=>{const b=h('button',{type:'button',class:'chip','aria-pressed':String(c===cType)},lab||c);b.addEventListener('click',()=>{cType=c;if(c!=='+')store('tr-ctype',c);renderCardioForm();if(c==='+')$('cnome').focus()});return b};
+  $('ctypes').replaceChildren(...list.map(c=>chip(c)),chip('+','+ Outra'));
+  $('cnova').hidden=cType!=='+';
+}
 function renderCardioSum(){const t=cardioMin(state.sessions[state.person+'_'+state.date]);$('cardiosum').textContent=t?nf(t)+' min hoje':''}
 function addCardio(){
   if(!state.db){toast('Banco indisponível nesta visualização');return}
   const min=parseFloat(($('cmin').value||'').replace(',','.'));
   if(!(min>0)){toast('Informe o tempo em minutos');return}
   const now=new Date(),id=state.person+'_'+state.date,cur=state.sessions[id];
-  const item={tipo:cType,min,t:state.date===fmtDate(now)?fmtTime(now):'',ts:now.toISOString()};
+  let tipo=cType;if(tipo==='+'){tipo=$('cnome').value.trim();if(!tipo){toast('Digite o nome da atividade');return}
+    const l=modalidades();if(!l.some(x=>key(x)===key(tipo)))saveCfg({modalidades:[...l,tipo]});cType=tipo;store('tr-ctype',tipo);$('cnome').value=''}
+  const item={tipo,min,t:state.date===fmtDate(now)?fmtTime(now):'',ts:now.toISOString()};
   const data=cur?{...cur,cardio:[...(cur.cardio||[]),item]}:{person:state.person,date:state.date,tipo:'',sets:[],cardio:[item]};
   state.sessions[id]=data;enqueue(()=>state.db.doc('sessions/'+id).set(data));
-  $('cmin').value='';renderAll();toast('Cardio registrado');
+  $('cmin').value='';renderCardioForm();renderAll();toast(tipo+' registrado');
 }
 function removeCardio(s,i){
   if(!state.db)return;const id=s.person+'_'+s.date,cardio=s.cardio.filter((_,j)=>j!==i);
@@ -470,10 +479,10 @@ function renderHist(){
   ss.slice(0,histLimit).forEach((s,idx)=>{
     const groups=[];s.sets.forEach((x,i)=>{let g=groups.find(g=>key(g.ex)===key(x.ex));if(!g){g={ex:x.ex,items:[]};groups.push(g)}g.items.push([x,i])});
     const prs=s.sets.filter((_,i)=>pr.has(s.date+'|'+i)).length;
-    const d=h('details',{class:'card'},h('summary',null,h('h2',null,wd(s.date)+' '+br(s.date)+(s.tipo?' · '+s.tipo:'')),h('span',{class:'sub'},[s.sets.length?s.sets.length+' séries':null,dur(s)!=null?dur(s)+' min':null,prs?prs+' recorde'+(prs>1?'s':''):null,cardioMin(s)?'cardio '+nf(cardioMin(s))+' min':null].filter(Boolean).join(' · '))));
+    const d=h('details',{class:'card'},h('summary',null,h('h2',null,wd(s.date)+' '+br(s.date)+(s.tipo?' · '+s.tipo:'')),h('span',{class:'sub'},[s.sets.length?s.sets.length+' séries':null,dur(s)!=null?dur(s)+' min':null,prs?prs+' recorde'+(prs>1?'s':''):null,cardioMin(s)?'atividades '+nf(cardioMin(s))+' min':null].filter(Boolean).join(' · '))));
     if(idx===0)d.open=true;
     for(const g of groups)d.append(h('div',{class:'line'},h('b',null,g.ex+': '),g.items.map(([x,i])=>(x.t?x.t+' ':'')+(x.load?nf(x.load)+'×':'')+x.reps+(pr.has(s.date+'|'+i)?' ★':'')).join(' · ')));
-    if(s.cardio&&s.cardio.length)d.append(h('div',{class:'line'},h('b',null,'Cardio: '),s.cardio.map(c=>c.tipo+' '+nf(c.min)+' min').join(' · ')));
+    if(s.cardio&&s.cardio.length)d.append(h('div',{class:'line'},h('b',null,'Atividades: '),s.cardio.map(c=>c.tipo+' '+nf(c.min)+' min').join(' · ')));
     d.firstChild.nextSibling&&(d.firstChild.nextSibling.style.marginTop='10px');
     box.append(d);
   });
@@ -689,7 +698,7 @@ function renderEvo(){
     kpi('Volume',fmtVol(vol),'carga × repetições'),
     kpi('Recordes',String(prs),'séries acima do melhor anterior'),
     kpi('Duração média',avgDur!=null?avgDur+' min':'—','da 1ª à última série'),
-    kpi('Cardio',cardio?nf(cardio)+' min':'—','tempo total no período')));
+    kpi('Cardio e modalidades',cardio?nf(cardio)+' min':'—','tempo total no período')));
 
   // semanas, dias da semana e meses
   const wk=[];for(let t=ms(weekKey(d0)),e=ms(weekKey(endD));t<=e;t+=7*864e5)wk.push(new Date(t).toISOString().slice(0,10));
@@ -731,7 +740,7 @@ function renderEvo(){
 
   const c4=chartCard(box,'Duração dos treinos','Minutos entre a primeira e a última série. Encoste em um ponto para ver o dia.');
   const dp=fs.map(s=>({s,d:dur(s)})).filter(o=>o.d!=null).map(o=>({t:ms(o.s.date),y:o.d,lab:o.d+' min',d:br(o.s.date),m:isMens(p,o.s.date)}));
-  let c5=null;if(cardio>0)c5=chartCard(box,'Cardio por semana','Minutos de cardio somados');
+  let c5=null;if(cardio>0)c5=chartCard(box,'Cardio e modalidades por semana','Minutos somados de todas as atividades');
 
   // ranking
   const rk=[];names.forEach(n=>{const r=exSeries(fs,n);if(r.pts.length>=2&&r.pts[0].y>0){const a=r.pts[0].y,b=r.pts[r.pts.length-1].y;rk.push({n,a,b,pct:(b-a)/a*100,u:r.anyLoad?' kg':' reps'})}});
@@ -894,7 +903,7 @@ function importBackup(){
   inp.onchange=async()=>{const f=inp.files&&inp.files[0];if(!f)return;
     try{const j=JSON.parse(await f.text());if(!j||j.app!=='treinos'||!j.data)throw 0;
       if(!confirm('Substituir os treinos deste aparelho pelos do backup?'))return;
-      state.db.load(j.data);applyCfg(savedCfg());aj=null;state.fillKey=null;renderAll();if(state.tab==='ajustes')renderAjustes();toast('Backup restaurado')}catch(e){toast('Arquivo de backup inválido')}};
+      state.db.load(j.data);applyCfg(savedCfg());aj=null;renderCardioForm();state.fillKey=null;renderAll();if(state.tab==='ajustes')renderAjustes();toast('Backup restaurado')}catch(e){toast('Arquivo de backup inválido')}};
   inp.click()}
 function backupCard(){
   return h('div',{class:'card'},h('h2',null,'Backup'),
@@ -998,6 +1007,13 @@ function renderAjustes(){
       h('div',{class:'swrow'},h('span',null,'Acompanhar ciclo menstrual'),sw),
       h('div',{class:'sub',style:'margin-top:4px'},'Mostra a marcação de menstruação no calendário e compara o rendimento nesses dias.'),
       state.lic?h('div',{class:'lic'},'Acesso '+licTexto(state.lic)+' · '+state.lic.e+' · ',h('a',{href:'#',onclick:e=>{e.preventDefault();sairLic()}},'sair')):null));
+    {const lista=modalidades();const inp=h('input',{placeholder:'Nova modalidade (ex.: Beach tennis)'});
+      const salvarMods=l=>{saveCfg({modalidades:l});renderCardioForm();renderAjustes()};
+      const add=h('button',{class:'ghost'},'Adicionar');add.onclick=()=>{const v=inp.value.trim();if(!v)return;if(lista.some(x=>key(x)===key(v))){toast('Já está na lista');return}salvarMods([...lista,v]);toast(v+' adicionada')};
+      box.append(h('div',{class:'card'},h('h2',null,'Cardio e modalidades'),
+        h('div',{class:'sub',style:'margin:4px 0 10px'},'As atividades que aparecem para registrar em Treinar: lutas, yoga, pilates, esportes e o que mais você praticar. Toque no ✕ para tirar da lista.'),
+        h('div',{class:'chips',style:'margin-top:0'},lista.map(m=>{const b=h('button',{type:'button',class:'chip'},m+'  ✕');b.onclick=()=>{if(lista.length<2){toast('Mantenha pelo menos uma');return}salvarMods(lista.filter(x=>x!==m))};return b})),
+        h('div',{class:'row',style:'margin-top:12px;align-items:center'},h('div',{style:'flex:1 1 180px'},inp),add)))}
     box.append(h('h2',{style:'margin-top:6px'},'Plano de treino'),h('div',{class:'sub'},'Séries e faixa de repetições de cada exercício. Para alternar entre máquinas, separe com | (ex.: Leg press | Hack).'));
     box.append(planEditor(aj.plano,dirty));
     const save=h('button',{class:'primary'},'Salvar ajustes');
@@ -1028,7 +1044,7 @@ function renderSobre(){
     <p>O nome vem de <b>overload</b>, a <b>sobrecarga progressiva</b>: o princípio mais importante do treino de força. O corpo só evolui quando recebe um pouco mais do que já está acostumado, seja mais carga, mais repetições ou mais séries.</p>
     <p>É isso que o Overa faz por você. Ele lembra o que você fez na última vez e sugere o próximo passo, para você evoluir com constância, sem achismo e sem depender da memória.</p></div>
   <div class="card"><h2>Como usar</h2><div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
-    ${item('🏋️ Treinar',`<ul><li>O app mostra o <b>treino do dia</b> seguindo a ordem do seu plano.</li><li>Carga e repetições já vêm preenchidas com a <b>sugestão</b>: se você bateu o máximo de reps, ele sobe a carga; se não, pede uma rep a mais.</li><li>Ajuste se precisar e toque em <b>Registrar série</b>. O horário fica salvo e o descanso entre séries é calculado.</li><li>Toque em outro exercício da lista para mudar a ordem. Toque na data (✎) para registrar outro dia.</li></ul>`)}
+    ${item('🏋️ Treinar',`<ul><li>O app mostra o <b>treino do dia</b> seguindo a ordem do seu plano.</li><li>Carga e repetições já vêm preenchidas com a <b>sugestão</b>: se você bateu o máximo de reps, ele sobe a carga; se não, pede uma rep a mais.</li><li>Ajuste se precisar e toque em <b>Registrar série</b>. O horário fica salvo e o descanso entre séries é calculado.</li><li>Toque em outro exercício da lista para mudar a ordem. Toque na data (✎) para registrar outro dia.</li><li>Em <b>Cardio e modalidades</b>, registre corrida, jiu-jitsu, yoga, pilates ou qualquer outra atividade com o tempo em minutos. Em Ajustes, você monta a sua lista de modalidades.</li></ul>`)}
     ${item('📈 Evolução e Recordes',`<ul><li><b>Evolução</b> mostra frequência, volume, duração e a curva de cada exercício, com filtros por período.</li><li><b>Recordes</b> guarda a sua melhor série em cada exercício. Toda vez que você supera, aparece a etiqueta RECORDE.</li></ul>`)}
     ${item('📏 Medidas',`<p>Registre suas avaliações físicas (peso, % de gordura, circunferências, dobras) e as orientações do nutricionista no campo de observações. Os gráficos mostram a evolução entre uma avaliação e outra.</p>`)}
     ${item('⚙️ Ajustes e plano',`<ul><li>Coloque seu nome e, se quiser, ative o <b>acompanhamento do ciclo menstrual</b>.</li><li>Edite seu plano: treinos, exercícios, séries, faixa de repetições e dias de folga. Para alternar entre máquinas, use <b>|</b> (ex.: Leg press | Hack).</li><li>Recebeu um <b>link de plano</b> do seu treinador? Abra no celular e confirme. O plano novo entra e o seu histórico continua.</li></ul>`)}
@@ -1101,7 +1117,10 @@ const WHATS='5511940216111';
 const b64u=t=>{t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';return Uint8Array.from(atob(t),c=>c.charCodeAt(0))};
 let licKey=null;
 async function verLic(code){
-  try{code=(code||'').trim().replace(/\s+/g,'');const [a,b]=code.split('.');if(!a||!b)return null;
+  try{code=String(code||'').replace(/[\s\u00ad-]/g,'');const lk=code.indexOf('licenca=');if(lk>=0)code=code.slice(lk+8);
+    code=code.replace(/[^A-Za-z0-9+\/._]/g,''); // remove traços, espaços e quebras que o WhatsApp insere
+    let [a,b]=code.split('.');if(b)b=b.slice(0,342); // assinatura RSA-2048 tem sempre 342 caracteres
+    code=a+'.'+b;if(!a||!b)return null;
     licKey=licKey||await crypto.subtle.importKey('jwk',LIC_PUB,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify']);
     const ok=await crypto.subtle.verify({name:'RSASSA-PKCS1-v1_5'},licKey,b64u(b),new TextEncoder().encode(a));
     if(!ok)return null;const pl=JSON.parse(new TextDecoder().decode(b64u(a)));pl.code=code;return pl}catch(e){return null}
@@ -1119,7 +1138,7 @@ function lockScreen(venc){
   const box=$('lock');box.hidden=false;document.body.style.overflow='hidden';
   const err=h('div',{class:'err'});
   const email=h('input',{type:'email',autocomplete:'email',inputmode:'email',placeholder:'seu@email.com',value:venc?venc.e:''});
-  const cod=h('textarea',{placeholder:'Cole aqui o código que você recebeu',autocapitalize:'off',autocorrect:'off',autocomplete:'off',spellcheck:'false'});
+  const cod=h('textarea',{placeholder:'Cole aqui o código ou o link que você recebeu',autocapitalize:'off',autocorrect:'off',autocomplete:'off',spellcheck:'false'});
   const go=h('button',{class:'primary'},'Entrar');
   go.onclick=async()=>{err.textContent='';go.disabled=true;const l=await verLic(cod.value);go.disabled=false;
     if(!l){err.textContent='Código inválido. Confira se copiou o código inteiro.';return}
@@ -1135,7 +1154,7 @@ function lockScreen(venc){
   box.replaceChildren(h('div',{class:'lock-in'},kids));
 }
 async function checkLicHash(){
-  const m=/^#licenca=([\w.+\/-]+)/.exec(location.hash);if(!m)return;
+  const m=/^#licenca=(.+)/.exec(decodeURIComponent(location.hash));if(!m)return;
   history.replaceState(null,'',location.pathname+location.search);
   const l=await verLic(m[1]);
   if(l&&(!l.x||hojeLic()<=l.x)){store('ov-lic',l.code);await gate();renderAll();toast('Acesso ativado para '+l.e)}
@@ -1157,7 +1176,7 @@ if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWor
     $('status').textContent=state.loaded?'':'Carregando…';
     syncTipoIfIdle();renderAll();
   },err=>{clearTimeout(slow);$('status').textContent='Erro ao ler o banco ('+((err&&err.code)||'desconhecido')+').'});
-  applyCfg(savedCfg());aj=null;$('appname').textContent=CONFIG.appName;renderAll();if(state.tab==='ajustes')renderAjustes();checkPlanLink();checkAcesso();
+  applyCfg(savedCfg());aj=null;renderCardioForm();$('appname').textContent=CONFIG.appName;renderAll();if(state.tab==='ajustes')renderAjustes();checkPlanLink();checkAcesso();
   addEventListener('hashchange',()=>{checkPlanLink();checkAcesso()});
   state.db.collection('ciclo').onSnapshot(snap=>{const m={};snap.docs.forEach(d=>{m[d.id]=d.data()});state.ciclo=m;venceuPeriodo();renderAll()},()=>{});
   state.db.collection('avaliacoes').onSnapshot(snap=>{const m={};snap.docs.forEach(d=>{m[d.id]=d.data()});state.avs=m;if(state.tab==='nutri')renderNutri()},()=>{});

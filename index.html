@@ -919,6 +919,15 @@ async function sharePlan(plano){
   try{if(navigator.share){await navigator.share({title:'Plano de treino',text:txt,url});return}}catch(e){if(e&&e.name==='AbortError')return}
   try{await navigator.clipboard.writeText(txt+' '+url);toast('Link copiado. Cole no WhatsApp do cliente')}catch(e){prompt('Copie o link:',url)}
 }
+const ADM='72eab563dcbc425b06abc25bd5bf90f7b168463a232399e596f13bd735a72752';
+const isAdmin=()=>store('ov-adm')===ADM;
+async function sha(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function checkAcesso(){
+  const m=/^#acesso=([\w-]+)/.exec(location.hash);if(!m)return;
+  history.replaceState(null,'',location.pathname+location.search);
+  if(m[1]==='sair'){store('ov-adm','');toast('Modo personal desativado');if(state.tab==='ajustes')renderAjustes();return}
+  try{if(await sha(m[1])===ADM){store('ov-adm',ADM);toast('Modo personal ativado');setTab('ajustes')}else toast('Código inválido')}catch(e){toast('Não foi possível validar o código')}
+}
 function checkPlanLink(){
   const m=/^#plano=([\w-]+)/.exec(location.hash);if(!m)return;
   history.replaceState(null,'',location.pathname+location.search);
@@ -930,8 +939,9 @@ function checkPlanLink(){
 }
 function renderAjustes(){
   const box=$('tab-ajustes');box.replaceChildren();
+  if(!isAdmin())ajMode='meu';
   const seg=h('div',{class:'subnav'},[['meu','Meu plano'],['cliente','Montar para outra pessoa']].map(([k,l])=>{const b=h('button',{'aria-selected':String(ajMode===k)},l);b.onclick=()=>{ajMode=k;renderAjustes()};return b}));
-  box.append(seg);
+  if(isAdmin())box.append(seg);
   if(ajMode==='meu'){
     if(!aj)aj={nome:CONFIG.nome,ciclo:CONFIG.ciclo,plano:clone(PLANS.eu)};
     const status=h('div',{class:'sub',style:'min-height:18px'});
@@ -948,7 +958,7 @@ function renderAjustes(){
     save.onclick=()=>{const pl=cleanPlan(aj.plano);if(!pl.length){toast('Monte pelo menos um treino com exercícios');return}
       pl.forEach(w=>delete w._open);const novo={nome:aj.nome.trim()||CONFIG_DEF.nome,ciclo:aj.ciclo,plano:pl};enqueue(()=>saveCfg(novo));aj=null;renderAll();renderAjustes();toast('Ajustes salvos')};
     const undo=h('button',{class:'ghost'},'Desfazer alterações');undo.onclick=()=>{aj=null;renderAjustes()};
-    box.append(status,save,h('div',{class:'btns'},undo,h('button',{class:'ghost',onclick:()=>sharePlan(aj.plano)},'Enviar meu plano por link')));
+    box.append(status,save,h('div',{class:'btns'},undo,isAdmin()?h('button',{class:'ghost',onclick:()=>sharePlan(aj.plano)},'Enviar meu plano por link'):null));
   }else{
     if(!ajC)ajC=draftLoad()||{plano:[{name:'Treino A',exs:[['',3,8,12]],_open:true}]};
     box.append(h('div',{class:'card'},h('h2',null,'Plano para cliente'),h('div',{class:'sub',style:'margin-top:6px'},'Monte aqui o plano de outra pessoa, sem mexer no seu. Ao terminar, gere o link e mande pelo WhatsApp: ela abre no celular, confirma e o plano carrega no app dela, mantendo todo o histórico.')));
@@ -1050,7 +1060,8 @@ if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWor
     $('status').textContent=state.loaded?'':'Carregando…';
     syncTipoIfIdle();renderAll();
   },err=>{clearTimeout(slow);$('status').textContent='Erro ao ler o banco ('+((err&&err.code)||'desconhecido')+').'});
-  applyCfg(savedCfg());aj=null;$('appname').textContent=CONFIG.appName;renderAll();if(state.tab==='ajustes')renderAjustes();checkPlanLink();
+  applyCfg(savedCfg());aj=null;$('appname').textContent=CONFIG.appName;renderAll();if(state.tab==='ajustes')renderAjustes();checkPlanLink();checkAcesso();
+  addEventListener('hashchange',()=>{checkPlanLink();checkAcesso()});
   state.db.collection('ciclo').onSnapshot(snap=>{const m={};snap.docs.forEach(d=>{m[d.id]=d.data()});state.ciclo=m;renderAll()},()=>{});
   state.db.collection('avaliacoes').onSnapshot(snap=>{const m={};snap.docs.forEach(d=>{m[d.id]=d.data()});state.avs=m;if(state.tab==='nutri')renderNutri()},()=>{});
   function syncTipoIfIdle(){if(document.activeElement!==$('tipo'))syncTipo()}

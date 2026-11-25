@@ -1119,7 +1119,7 @@ function lockScreen(venc){
   const box=$('lock');box.hidden=false;document.body.style.overflow='hidden';
   const err=h('div',{class:'err'});
   const email=h('input',{type:'email',autocomplete:'email',inputmode:'email',placeholder:'seu@email.com',value:venc?venc.e:''});
-  const cod=h('textarea',{placeholder:'Cole aqui o código que você recebeu',autocapitalize:'off',autocomplete:'off',spellcheck:'false'});
+  const cod=h('textarea',{placeholder:'Cole aqui o código que você recebeu',autocapitalize:'off',autocorrect:'off',autocomplete:'off',spellcheck:'false'});
   const go=h('button',{class:'primary'},'Entrar');
   go.onclick=async()=>{err.textContent='';go.disabled=true;const l=await verLic(cod.value);go.disabled=false;
     if(!l){err.textContent='Código inválido. Confira se copiou o código inteiro.';return}
@@ -1135,7 +1135,7 @@ function lockScreen(venc){
   box.replaceChildren(h('div',{class:'lock-in'},kids));
 }
 async function checkLicHash(){
-  const m=/^#licenca=([\w.-]+)/.exec(location.hash);if(!m)return;
+  const m=/^#licenca=([\w.+\/-]+)/.exec(location.hash);if(!m)return;
   history.replaceState(null,'',location.pathname+location.search);
   const l=await verLic(m[1]);
   if(l&&(!l.x||hojeLic()<=l.x)){store('ov-lic',l.code);await gate();renderAll();toast('Acesso ativado para '+l.e)}

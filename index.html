@@ -115,7 +115,9 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 :root{--mens:#e0568a}
 .bar.mens{fill:var(--mens)}.dot.mens{fill:var(--mens);stroke:var(--mens)}
 .metarow{position:relative}
-.mens-box{position:absolute;left:4px;top:2px;z-index:1;height:38px;display:flex;align-items:center;gap:8px;padding:0 10px 0 14px;background:var(--surface);border:1px solid var(--line);border-radius:99px;font:600 13px var(--body);color:var(--ink)}
+.mens-box{display:flex;flex-direction:column;gap:6px;padding:10px 14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;font:600 14px var(--body);color:var(--ink);margin-bottom:10px}
+.mens-box .mtop{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mens-box .mdesc{font:400 13px/1.4 var(--body);color:var(--muted)}
 .mens-box[hidden]{display:none}
 .mens-box.on{border-color:var(--mens)}
 .sw{width:40px;height:24px;border-radius:99px;border:0;background:var(--line);position:relative;cursor:pointer;padding:0;flex:none}
@@ -506,20 +508,49 @@ function renderCal(){
     h('div',{class:'cal-f'},h('span',null,'☀️ manhã · ⛅️ tarde · 🌙 noite · • sem horário'+(CONFIG.ciclo?' · 🩸 menstruação':'')),h('button',{type:'button',class:'ghost',onclick:()=>{calMonth=today.slice(0,7);$('date').value=today;$('date').onchange();$('meta').open=false}},'Hoje')));
 }
 // ---------- menstruação ----------
-const isMens=(p,d)=>!!(state.ciclo&&state.ciclo[p+'_'+d]);
+const MAXP=10;
+const addD=(d,n)=>new Date(Date.parse(d+'T12:00:00Z')+n*864e5).toISOString().slice(0,10);
+const perAtivo=p=>{const a=state.ciclo&&state.ciclo['ativo_'+p];return a&&a.inicio?a:null};
+function isMens(p,d){
+  if(state.ciclo&&state.ciclo[p+'_'+d])return true;
+  const a=perAtivo(p);if(!a)return false;
+  const fim=addD(a.inicio,MAXP-1),hoje=fmtDate(new Date());
+  return d>=a.inicio&&d<=(fim<hoje?fim:hoje);
+}
+function fecharPeriodo(p,ate){ // grava os dias do período e encerra
+  const a=perAtivo(p);if(!a)return;
+  for(let d=a.inicio;d<=ate;d=addD(d,1)){const id=p+'_'+d,doc={person:p,date:d,on:true};state.ciclo[id]=doc;enqueue(()=>state.db.doc('ciclo/'+id).set(doc))}
+  delete state.ciclo['ativo_'+p];enqueue(()=>state.db.doc('ciclo/ativo_'+p).delete());
+}
+function venceuPeriodo(){ // se esqueceu ligado, encerra sozinho após MAXP dias
+  const p=state.person,a=perAtivo(p);if(!a)return;
+  const fim=addD(a.inicio,MAXP-1);if(fmtDate(new Date())>fim)fecharPeriodo(p,fim);
+}
 const legendM=()=>h('div',{class:'leg'},h('span',null,h('i',{class:'lgm'}),'Dia de menstruação'));
 function renderMens(){
   const box=$('mens-box');if(!box)return;
   if(!CONFIG.ciclo){box.hidden=true;return}
-  box.hidden=false;const on=isMens(state.person,state.date);box.classList.toggle('on',on);
-  const sw=h('button',{class:'sw',role:'switch','aria-checked':String(on),'aria-label':'Menstruação neste dia'});
+  box.hidden=false;
+  const p=state.person,D=state.date,a=perAtivo(p),on=isMens(p,D);box.classList.toggle('on',on);
+  const dia=a&&D>=a.inicio&&on?Math.round((Date.parse(D)-Date.parse(a.inicio))/864e5)+1:0;
+  const sw=h('button',{class:'sw',role:'switch','aria-checked':String(on),'aria-label':'Menstruação'});
   sw.onclick=()=>{
-    if(!state.db){toast('Banco indisponível nesta visualização');return}
-    const id=state.person+'_'+state.date;state.ciclo=state.ciclo||{};
-    if(isMens(state.person,state.date)){delete state.ciclo[id];enqueue(()=>state.db.doc('ciclo/'+id).delete())}
-    else{const d={person:state.person,date:state.date,on:true};state.ciclo[id]=d;enqueue(()=>state.db.doc('ciclo/'+id).set(d))}
+    if(!state.db){toast('Armazenamento indisponível');return}
+    state.ciclo=state.ciclo||{};const hoje=fmtDate(new Date());
+    if(a&&D>=a.inicio){ // desligar: termina o período no dia anterior
+      if(D===a.inicio){delete state.ciclo['ativo_'+p];enqueue(()=>state.db.doc('ciclo/ativo_'+p).delete());toast('Marcação cancelada')}
+      else{fecharPeriodo(p,addD(D,-1));toast('Período encerrado')}
+    }else if(state.ciclo[p+'_'+D]){ // dia avulso já marcado: desmarca
+      const id=p+'_'+D;delete state.ciclo[id];enqueue(()=>state.db.doc('ciclo/'+id).delete());
+    }else if(!a&&D>=addD(hoje,-(MAXP-1))){ // começa um período
+      const doc={person:p,inicio:D};state.ciclo['ativo_'+p]=doc;enqueue(()=>state.db.doc('ciclo/ativo_'+p).set(doc));toast('Período iniciado')
+    }else{ // data antiga: marca só aquele dia
+      const id=p+'_'+D,doc={person:p,date:D,on:true};state.ciclo[id]=doc;enqueue(()=>state.db.doc('ciclo/'+id).set(doc));
+    }
     renderAll()};
-  box.replaceChildren(h('span',null,'Menstruação'),sw);
+  box.replaceChildren(
+    h('div',{class:'mtop'},h('span',null,'🩸 Menstruação'+(dia?' · dia '+dia:'')),sw),
+    h('div',{class:'mdesc'},'Ligue no primeiro dia. Os dias seguintes ficam marcados sozinhos até você desligar, no primeiro dia em que não estiver mais menstruada (ou por até '+MAXP+' dias).'));
 }
 // ---------- evolução ----------
 let evoPeriod='all',evoTreino='',evoAno='',evoMes='',evoDia='',evoSem='',evoTurno='',evoEx='';
@@ -1062,7 +1093,7 @@ if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWor
   },err=>{clearTimeout(slow);$('status').textContent='Erro ao ler o banco ('+((err&&err.code)||'desconhecido')+').'});
   applyCfg(savedCfg());aj=null;$('appname').textContent=CONFIG.appName;renderAll();if(state.tab==='ajustes')renderAjustes();checkPlanLink();checkAcesso();
   addEventListener('hashchange',()=>{checkPlanLink();checkAcesso()});
-  state.db.collection('ciclo').onSnapshot(snap=>{const m={};snap.docs.forEach(d=>{m[d.id]=d.data()});state.ciclo=m;renderAll()},()=>{});
+  state.db.collection('ciclo').onSnapshot(snap=>{const m={};snap.docs.forEach(d=>{m[d.id]=d.data()});state.ciclo=m;venceuPeriodo();renderAll()},()=>{});
   state.db.collection('avaliacoes').onSnapshot(snap=>{const m={};snap.docs.forEach(d=>{m[d.id]=d.data()});state.avs=m;if(state.tab==='nutri')renderNutri()},()=>{});
   function syncTipoIfIdle(){if(document.activeElement!==$('tipo'))syncTipo()}
 })();

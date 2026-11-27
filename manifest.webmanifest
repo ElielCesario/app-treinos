@@ -1,4 +1,5 @@
 {
+  "id": "./",
   "name": "Overa",
   "short_name": "Overa",
   "description": "Caderno de treino: série a série, sugestão de carga, recordes e evolução.",
@@ -6,6 +7,7 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "prefer_related_applications": false,
   "orientation": "portrait",
   "background_color": "#0d1117",
   "theme_color": "#0d1117",

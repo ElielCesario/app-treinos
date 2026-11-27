@@ -1049,7 +1049,7 @@ function renderSobre(){
     ${item('📏 Medidas',`<p>Registre suas avaliações físicas (peso, % de gordura, circunferências, dobras) e as orientações do nutricionista no campo de observações. Os gráficos mostram a evolução entre uma avaliação e outra.</p>`)}
     ${item('⚙️ Ajustes e plano',`<ul><li>Coloque seu nome e, se quiser, ative o <b>acompanhamento do ciclo menstrual</b>.</li><li>Edite seu plano: treinos, exercícios, séries, faixa de repetições e dias de folga. Para alternar entre máquinas, use <b>|</b> (ex.: Leg press | Hack).</li><li>Recebeu um <b>link de plano</b> do seu treinador? Abra no celular e confirme. O plano novo entra e o seu histórico continua.</li></ul>`)}
     ${item('💾 Backup e troca de celular',`<p>Seus dados ficam <b>só neste aparelho</b>. Em <b>Dados → Gerar backup</b>, salve o arquivo no Drive ou no WhatsApp de vez em quando. Ao trocar de celular, use <b>Restaurar backup</b>. Em Dados também dá para exportar uma planilha (CSV).</p>`)}
-    ${item('📲 Instalar como app',`<ul><li><b>iPhone:</b> abra no Safari, toque em Compartilhar e depois em <b>Adicionar à Tela de Início</b>.</li><li><b>Android:</b> no Chrome, toque em ⋮ e depois em <b>Instalar app</b>.</li><li>Depois de instalado, funciona até sem internet.</li></ul>`)}
+    ${item('📲 Instalar como app',`<ul><li><b>iPhone:</b> abra no Safari, toque em Compartilhar e depois em <b>Adicionar à Tela de Início</b>.</li><li><b>Android:</b> use o <b>Chrome</b>. Quando aparecer o botão <b>Instalar app</b> no topo do Overa, é só tocar nele. Se não aparecer, toque em ⋮ e depois em <b>Instalar app</b>. Se o menu mostrar <b>Adicionar à tela inicial</b>, toque nele e escolha <b>Instalar</b>, não "Criar atalho".</li><li><b>Abriu com a barra do navegador?</b> Foi criado um atalho, não o app. Apague o ícone da tela inicial e instale de novo pelo caminho acima.</li><li>Depois de instalado, funciona até sem internet.</li></ul>`)}
   </div></div>
   <div class="card"><h2>Privacidade</h2><p>O Overa não tem cadastro e não envia seus treinos para nenhum servidor: tudo fica guardado no seu aparelho. Só você vê seus dados, e só sai daqui o que você mesmo exportar.</p></div>
   <div class="card"><h2>Feito pela BiblioTech</h2><p>O Overa nasceu de um caderno de treino real, transformado em app por quem trabalha com dados no dia a dia. Ele faz parte da BiblioTech, que reúne ebooks, cursos e mentoria em dados, tecnologia e IA.</p>
@@ -1101,13 +1101,26 @@ function localDB(){
   };
 }
 // ---------- dica de instalação ----------
-function renderInstall(){
+let promptInstalar=null;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();promptInstalar=e;renderInstall(true)});
+addEventListener('appinstalled',()=>{promptInstalar=null;store('tr-install-ok','1');$('install').hidden=true;toast('Overa instalado! Abra pelo ícone na tela inicial.')});
+function renderInstall(force){
   const box=$('install');const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
-  if(standalone||store('tr-install-ok'))return;
-  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(standalone){box.hidden=true;return}
+  if(store('tr-install-ok')&&!(force&&promptInstalar))return;
+  const ua=navigator.userAgent,ios=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),android=/android/i.test(ua);
   const fechar=h('button',{class:'ghost','aria-label':'Fechar'},'Ok');
   fechar.onclick=()=>{store('tr-install-ok','1');box.hidden=true};
-  box.replaceChildren(h('p',null,h('b',null,'Instale como app: '),ios?'toque em Compartilhar e depois em "Adicionar à Tela de Início".':'abra o menu do navegador (⋮) e toque em "Instalar app" ou "Adicionar à tela inicial".'),fechar);
+  if(promptInstalar){ // Chrome/Android: instalação oficial em um toque
+    const bt=h('button',{class:'primary',style:'font-size:18px;padding:10px'},'Instalar app');
+    bt.onclick=async()=>{const p=promptInstalar;if(!p)return;p.prompt();try{const r=await p.userChoice;promptInstalar=null;if(r.outcome!=='accepted')renderInstall()}catch(e){}};
+    box.replaceChildren(h('div',{style:'display:flex;flex-direction:column;gap:10px;flex:1'},h('p',null,h('b',null,'Instale o Overa: '),'ele abre em tela cheia, como um app, e funciona sem internet.'),bt),fechar);
+  }else{
+    const txt=ios?'abra este link no Safari, toque em Compartilhar e depois em "Adicionar à Tela de Início".'
+      :android?'use o Chrome. Toque em ⋮ (canto de cima) e depois em "Instalar app". Se aparecer "Adicionar à tela inicial", toque nele e escolha "Instalar" (não "Criar atalho").'
+      :'abra o menu do navegador e toque em "Instalar app" ou "Adicionar à tela inicial".';
+    box.replaceChildren(h('p',null,h('b',null,'Instale como app: '),txt),fechar);
+  }
   box.hidden=false;
 }
 renderInstall();
